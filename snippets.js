@@ -1,6 +1,6 @@
 import { connect } from 'cloudflare:sockets';
 
-let fdIP = 'tw.william.us.ci!txt';
+let fdIP = 'proxyip.example.com!txt';
 let yourUUID = '495c7195-85b8-498a-bf20-2ea9ce9175b5';
 
 let 缓存反代IP = null;
