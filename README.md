@@ -7,4 +7,4 @@
 ```
 vless://495c7195-85b8-498a-bf20-2ea9ce9175b5@ip.sb:443?path=%2F%3Fed%3D2560%26fdip%3Dproxyip.example.com%21txt&security=tls&encryption=none&insecure=0&host=snippets.example.com&fp=firefox&type=ws&allowInsecure=0&sni=snippets.example.com#snippets
 ```
-_TXT记录反代域名优点是一个反代域名不局限于同一个端口的proxyip，目前公开的似乎只有威廉的_
+_TXT记录反代域名相对A记录的有一个明显优势，不同端口的反代IP可以塞到同一个域名_
