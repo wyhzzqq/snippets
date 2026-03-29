@@ -1,5 +1,5 @@
 # snippets
-**基于[老王vless](https://github.com/eooce/Cloudflare-proxy/blob/main/snippets.js)修改，TXT记录处理代码来自[CM](https://github.com/cmliu/edgetunnel)，HTTPS代理实现来自AK**  
+**基于[老王vless](https://github.com/eooce/Cloudflare-proxy/blob/main/snippets.js)修改，TXT记录处理代码来自[CM](https://github.com/cmliu/edgetunnel)，HTTPS代理实现来自[AK](https://t.me/Enkelte_notif/810)**  
 **区别:**  
 1. `proxyip` 改为 `fdip`  
 2. `fdip` 通过标记 `!txt` 支持 `TXT记录` 反代域名，例：`proxyip.example.com!txt`  
