@@ -1,6 +1,6 @@
 import { connect } from 'cloudflare:sockets';
 
-let fdIP = 'proxyip.example.com!txt';
+let fdIP = 'txt.proxyip.com!txt';
 let yourUUID = '495c7195-85b8-498a-bf20-2ea9ce9175b5';
 
 let 缓存反代IP = null;
@@ -69,7 +69,7 @@ function parseProxyAddress(proxyStr) {
         try {
             const url = new URL(proxyStr);
             return {
-                type: 'http',
+                type: proxyStr.startsWith('https://') ? 'https' : 'http',
                 host: url.hostname,
                 port: parseInt(url.port) || (proxyStr.startsWith('https://') ? 443 : 80),
                 username: url.username ? decodeURIComponent(url.username) : '',
@@ -378,10 +378,11 @@ async function connect2Socks5(proxyConfig, targetHost, targetPort, initialData) 
 }
 
 async function connect2Http(proxyConfig, targetHost, targetPort, initialData) {
-    const { host, port, username, password } = proxyConfig;
+    const { type, host, port, username, password } = proxyConfig;
     let socket;
     try {
-        socket = connect({ hostname: host, port: port });
+        const options = type === 'https' ? { secureTransport: 'on', allowHalfOpen: false } : {};
+        socket = connect({ hostname: host, port: port }, options);
         const writer = socket.writable.getWriter();
         const reader = socket.readable.getReader();
         try {
