@@ -9,7 +9,8 @@
 ```
 vless://495c7195-85b8-498a-bf20-2ea9ce9175b5@ip.sb:443?path=%2F%3Fed%3D2560%26fdip%3Dproxyip.example.com%21txt&security=tls&encryption=none&insecure=0&host=snippets.example.com&fp=firefox&type=ws&allowInsecure=0&sni=snippets.example.com#snippets
 ```
-> 除 `snippets.js` 外都已移除 `sock/http`，这两个免费的基本都没有好的  
+------
+> 除 `snippets.js` 外都已移除 `sock/http`，这两个免费的基本都没有好的索性删了  
 > `!txt+sstp+turn.js` turn 路径：`/?ed=2560&fdip=turn://host:port`
 
 _TXT记录反代域名相对A记录的有一个明显优势，不同端口的反代IP可以塞到同一个域名_  
