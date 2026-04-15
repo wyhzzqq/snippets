@@ -1,0 +1,632 @@
+import { connect } from 'cloudflare:sockets';
+
+let v1 = 'proxyip.example.com!txt';
+let v2 = '495c7195-85b8-498a-bf20-2ea9ce9175b5';
+
+let v3 = null;
+let v4 = null;
+
+const r1 = /^(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)$/;
+const r2 = /^\[?([a-fA-F0-9:]+)\]?$/;
+
+function f1(a, o = 0) {
+    const h = Array.from(a.slice(o, o + 16))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
+function f2(s) {
+    if (!s) return { e: null };
+    try {
+        const b = atob(s.replace(/-/g, '+').replace(/_/g, '/'));
+        const y = Uint8Array.from(b, c => c.charCodeAt(0));
+        return { d: y.buffer, e: null };
+    } catch (e) {
+        return { e };
+    }
+}
+
+function f3(s) {
+    try {
+        if (s?.readyState === WebSocket.OPEN || s?.readyState === WebSocket.CLOSING) s.close();
+    } catch (e) {}
+}
+
+function f4(p) {
+    if (!p) return null;
+    p = p.trim();
+
+    const m = p.match(/^\[([^\]]+)\](?::(\d+))?$/);
+    if (m) {
+        const pt = parseInt(m[2], 10);
+        return { t: 'direct', h: m[1], p: (!isNaN(pt) && pt > 0) ? pt : 443 };
+    }
+
+    const l = p.lastIndexOf(':');
+    if (l > 0) {
+        const h = p.substring(0, l);
+        const pt = parseInt(p.substring(l + 1), 10);
+        if (!isNaN(pt) && pt > 0 && pt <= 65535) return { t: 'direct', h, p: pt };
+    }
+
+    return { t: 'direct', h: p, p: 443 };
+}
+
+async function f5(d, t) {
+    const f = async (u) => {
+        try {
+            const r = await fetch(`${u}?name=${d}&type=${t}`, { headers: { 'Accept': 'application/dns-json' } });
+            if (r.ok) {
+                const j = await r.json();
+                return j.Answer || [];
+            }
+        } catch (e) {}
+        return null;
+    };
+    const r = await f('https://1.1.1.1/dns-query');
+    return r || (await f('https://dns.google/dns-query')) || [];
+}
+
+function f6(s) {
+    let a = s, p = 443;
+    const m = s.match(/^(?:\[([^\]]+)\]|([^:]+))(?::(\d+))?$/);
+    if (m) {
+        a = m[1] || m[2];
+        p = m[3] ? parseInt(m[3], 10) : 443;
+    }
+    return [a, p];
+}
+
+async function f7(s, t = 'dash.cloudflare.com', u = '00000000-0000-4000-8000-000000000000') {
+    const rs = s.trim();
+    if (v3 === rs && v4) return v4;
+
+    const ls = rs.toLowerCase();
+    const i = ls.endsWith('!txt');
+    const td = i ? rs.slice(0, -4).trim() : rs;
+    let a = [];
+
+    if (i) {
+        const tr = await f5(td, 'TXT');
+        const td2 = tr.filter(r => r.type === 16).map(r => r.data);
+        if (td2.length > 0) {
+            let d = td2[0].replace(/^"|"$/g, '');
+            const p = d.replace(/\\010|\n/g, ',').split(',').map(x => x.trim()).filter(Boolean);
+            a = p.map(f6);
+        }
+    } else {
+        let [ad, pt] = f6(td);
+        const tm = td.match(/\.tp(\d+)/);
+        if (tm) pt = parseInt(tm[1], 10);
+
+        if (!r1.test(ad) && !r2.test(ad)) {
+            const [ar, a4r] = await Promise.all([f5(ad, 'A'), f5(ad, 'AAAA')]);
+            const i4 = ar.filter(r => r.type === 1).map(r => r.data);
+            const i6 = a4r.filter(r => r.type === 28).map(r => `[${r.data}]`);
+            const ip = [...i4, ...i6];
+            a = ip.length > 0 ? ip.map(x => [x, pt]) : [[ad, pt]];
+        } else {
+            a = [[ad, pt]];
+        }
+    }
+
+    const sa = a.sort((x, y) => x[0].localeCompare(y[0]));
+    const trg = t.includes('.') ? t.split('.').slice(-2).join('.') : t;
+    let sd = [...(trg + u)].reduce((ac, c) => ac + c.charCodeAt(0), 0);
+
+    v4 = [...sa].sort(() => {
+        sd = (sd * 1103515245 + 12345) & 0x7fffffff;
+        return (sd / 0x7fffffff) - 0.5;
+    }).slice(0, 8);
+    
+    v3 = rs;
+    return v4;
+}
+
+export default {
+    async fetch(rq, e, c) {
+        try {
+            const u = new URL(rq.url);
+            const is = rq.headers.get('Upgrade') === 'websocket';
+            let cv = null;
+
+            if (u.pathname.startsWith('/fdip=')) {
+                try { cv = decodeURIComponent(u.pathname.substring(9)).trim(); } catch (e) {}
+                if (cv && !is) {
+                    v1 = cv;
+                    return new Response(`set fdIP to: ${v1}\n\n`, {
+                        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' },
+                    });
+                }
+            }
+
+            if (is) {
+                const fv = cv || u.searchParams.get('fdip') || rq.headers.get('fdip');
+                return await f8(rq, fv);
+            }
+
+            return new Response('Not Found', { status: 404 });
+        } catch (err) {
+            return new Response('Internal Server Error', { status: 500 });
+        }
+    },
+};
+
+async function f8(rq, cv) {
+    const wp = new WebSocketPair();
+    const [c, s] = Object.values(wp);
+    s.accept();
+    let rw = { sk: null };
+    let dq = false;
+    let turnUdp = null;
+
+    const ed = rq.headers.get('sec-websocket-protocol') || '';
+    const rd = f12(s, ed);
+    const turnConfig = getTurn(cv);
+    const sstpConfig = getSstp(cv);
+
+    rd.pipeTo(new WritableStream({
+        async write(ck) {
+            if (turnUdp) return turnUdp.processXUDP(ck);
+            if (dq) return await f14(ck, s, null);
+            if (rw.sk) {
+                const wt = rw.sk.writable.getWriter();
+                await wt.write(ck);
+                wt.releaseLock();
+                return;
+            }
+
+            const { he, m, at, p, h, ri, v, iu } = f11(ck, v2);
+            if (he) throw new Error(m);
+
+            const rh = new Uint8Array([v[0], 0]);
+            const rwd = ck.slice(ri);
+            
+            if (iu) {
+                if (turnConfig) {
+                    s.send(rh);
+                    turnUdp = await turnUDP(turnConfig, d => {
+                        if (s.readyState === WebSocket.OPEN) s.send(d);
+                    });
+                    if (!turnUdp) { f3(s); return; }
+                    if (rwd.byteLength) turnUdp.processXUDP(rwd);
+                    return;
+                } else if (sstpConfig) {
+                    throw new Error('UDP is not supported over SSTP');
+                } else {
+                    if (p === 53) dq = true;
+                    else throw new Error('UDP is not supported without TURN');
+                }
+            }
+
+            if (turnConfig) {
+                const ip = await resolveIP(h) || h;
+                const turnSock = await turnConn(turnConfig, ip, p);
+                if (!turnSock) { f3(s); return; }
+                rw.sk = turnSock;
+                const wt = turnSock.writable.getWriter();
+                if (rwd.byteLength) await wt.write(rwd);
+                wt.releaseLock();
+                f13(turnSock, s, rh, null);
+                return;
+            }
+
+            if (sstpConfig) {
+                const ipP = resolveIP(h).then(res => res || h);
+                const sstpSock = await sstpConn(sstpConfig, ipP, p);
+                if (!sstpSock) { f3(s); return; }
+                rw.sk = sstpSock;
+                const wt = sstpSock.writable.getWriter();
+                if (rwd.byteLength) await wt.write(rwd);
+                wt.releaseLock();
+                f13(sstpSock, s, rh, null);
+                return;
+            }
+
+            if (dq) return f14(rwd, s, rh);
+            await f10(at, h, p, rwd, s, rh, rw, cv);
+        },
+    })).catch(() => {});
+
+    return new Response(null, { status: 101, webSocket: c });
+}
+
+async function f10(at, h, pn, rwd, ws, rh, rw, cv) {
+    const cd = async (a, p, d) => {
+        const rs = connect({ hostname: a, port: p });
+        const wt = rs.writable.getWriter();
+        await wt.write(d);
+        wt.releaseLock();
+        return rs;
+    };
+
+    let c1 = cv || v1;
+    let pc = c1 ? f4(c1) : null;
+
+    if (!pc) pc = { t: 'direct', h: v1, p: 443 };
+
+    if (pc.t === 'direct' && c1) {
+        try {
+            const rl = await f7(c1, h, v2);
+            if (rl?.length > 0) [pc.h, pc.p] = rl[0];
+        } catch (e) {}
+    }
+
+    const cp = async () => {
+        let ns = await cd(pc.h, pc.p, rwd);
+        rw.sk = ns;
+        ns.closed.catch(() => {}).finally(() => f3(ws));
+        f13(ns, ws, rh, null);
+    };
+
+    try {
+        const is = await cd(h, pn, rwd);
+        rw.sk = is;
+        f13(is, ws, rh, cp);
+    } catch (e) { await cp(); }
+}
+
+function f11(ck, tk) {
+    if (ck.byteLength < 24) return { he: true, m: 'invalid' };
+    const v = new Uint8Array(ck.slice(0, 1));
+    if (f1(new Uint8Array(ck.slice(1, 17))) !== tk) return { he: true, m: 'invalid' };
+    
+    const ol = new Uint8Array(ck.slice(17, 18))[0];
+    const c = new Uint8Array(ck.slice(18 + ol, 19 + ol))[0];
+    if (c !== 1 && c !== 2) return { he: true, m: 'invalid' };
+    
+    const pi = 19 + ol;
+    const p = new DataView(ck.slice(pi, pi + 2)).getUint16(0);
+    let ai = pi + 3, al = 0, hn = '';
+    const at = new Uint8Array(ck.slice(pi + 2, ai))[0];
+
+    switch (at) {
+        case 1: al = 4; hn = new Uint8Array(ck.slice(ai, ai + al)).join('.'); break;
+        case 2: al = new Uint8Array(ck.slice(ai, ai + 1))[0]; ai += 1; hn = new TextDecoder().decode(ck.slice(ai, ai + al)); break;
+        case 3: al = 16; const iv = new DataView(ck.slice(ai, ai + al)); hn = Array.from({ length: 8 }, (_, i) => iv.getUint16(i * 2).toString(16)).join(':'); break;
+        default: return { he: true, m: 'invalid' };
+    }
+    
+    if (!hn) return { he: true, m: 'invalid' };
+    return { he: false, at, p, h: hn, iu: c === 2, ri: ai + al, v };
+}
+
+function f12(sk, edh) {
+    let c = false;
+    return new ReadableStream({
+        start(co) {
+            sk.addEventListener('message', e => { if (!c) co.enqueue(e.data); });
+            sk.addEventListener('close', () => { if (!c) { f3(sk); co.close(); } });
+            sk.addEventListener('error', err => co.error(err));
+            
+            const { d, e } = f2(edh);
+            if (e) co.error(e);
+            else if (d) co.enqueue(d);
+        },
+        cancel() { c = true; f3(sk); }
+    });
+}
+
+async function f13(rs, ws, hd, rf) {
+    let h = hd, hd_f = false;
+    await rs.readable.pipeTo(new WritableStream({
+        async write(ck, co) {
+            hd_f = true;
+            if (ws.readyState !== WebSocket.OPEN) co.error('closed');
+            if (h) {
+                const r = new Uint8Array(h.length + ck.byteLength);
+                r.set(h, 0); r.set(ck, h.length);
+                ws.send(r.buffer);
+                h = null;
+            } else {
+                ws.send(ck);
+            }
+        },
+        abort() {},
+    })).catch(() => f3(ws));
+    
+    if (!hd_f && rf) await rf();
+}
+
+async function f14(uc, ws, rh) {
+    try {
+        const ts = connect({ hostname: '8.8.4.4', port: 53 });
+        let vh = rh;
+        const wt = ts.writable.getWriter();
+        await wt.write(uc);
+        wt.releaseLock();
+        
+        await ts.readable.pipeTo(new WritableStream({
+            async write(ck) {
+                if (ws.readyState === WebSocket.OPEN) {
+                    if (vh) {
+                        const r = new Uint8Array(vh.length + ck.byteLength);
+                        r.set(vh, 0); r.set(ck, vh.length);
+                        ws.send(r.buffer);
+                        vh = null;
+                    } else {
+                        ws.send(ck);
+                    }
+                }
+            },
+        }));
+    } catch (e) {}
+}
+
+const dec = new TextDecoder(), enc = s => new TextEncoder().encode(s);
+const u16 = (b, o = 0) => (b[o] << 8) | b[o + 1], pad4 = n => -n & 3;
+const MAGIC = new Uint8Array([0x21, 0x12, 0xA4, 0x42]);
+const MT = { AQ: 0x003, AO: 0x103, AE: 0x113, PQ: 0x008, PO: 0x108, CQ: 0x00A, CO: 0x10A, BQ: 0x00B, BO: 0x10B, SI: 0x016, DI: 0x017 };
+const AT = { USER: 0x006, MI: 0x008, ERR: 0x009, PEER: 0x012, DATA: 0x013, REALM: 0x014, NONCE: 0x015, TRANSPORT: 0x019, CONNID: 0x02A };
+const cat = (...a) => { const r = new Uint8Array(a.reduce((s, x) => s + x.length, 0)); a.reduce((o, x) => (r.set(x, o), o + x.length), 0); return r; };
+const safeClose = (...a) => a.forEach(x => { try { x?.close?.(); } catch {} });
+const dial = async (h, p) => { const s = connect({ hostname: h, port: p }); await s.opened; return s; };
+const tid = () => crypto.getRandomValues(new Uint8Array(12));
+const stunAttr = (t, v) => { const b = new Uint8Array(4 + v.length + pad4(v.length)), d = new DataView(b.buffer); d.setUint16(0, t); d.setUint16(2, v.length); b.set(v, 4); return b; };
+const stunMsg = (t, id, a) => { const bd = cat(...a), h = new Uint8Array(20), d = new DataView(h.buffer); d.setUint16(0, t); d.setUint16(2, bd.length); h.set(MAGIC, 4); h.set(id, 8); return cat(h, bd); };
+const xorPeer = (ip, port) => { const b = new Uint8Array(8); b[1] = 1; new DataView(b.buffer).setUint16(2, port ^ 0x2112); ip.split('.').forEach((v, i) => b[4 + i] = +v ^ MAGIC[i]); return b; };
+const parseStun = d => {
+  if (d.length < 20 || MAGIC.some((v, i) => d[4 + i] !== v)) return null;
+  const dv = new DataView(d.buffer, d.byteOffset, d.byteLength), ml = dv.getUint16(2), attrs = {};
+  for (let o = 20; o + 4 <= 20 + ml; ) { const t = dv.getUint16(o), l = dv.getUint16(o + 2); if (o + 4 + l > d.length) break; attrs[t] = d.slice(o + 4, o + 4 + l); o += 4 + l + pad4(l); }
+  return { type: dv.getUint16(0), attrs };
+};
+const parseErr = d => d?.length >= 4 ? (d[2] & 7) * 100 + d[3] : 0;
+const parseXorPeer = d => d?.length >= 8 ? [MAGIC.map((m, i) => d[4 + i] ^ m).join('.'), u16(d, 2) ^ 0x2112] : ['', 0];
+const addIntegrity = async (m, key) => { const c = new Uint8Array(m), d = new DataView(c.buffer); d.setUint16(2, d.getUint16(2) + 24); const k = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']); return cat(c, stunAttr(AT.MI, new Uint8Array(await crypto.subtle.sign('HMAC', k, c)))); };
+const readStun = async (rd, buf) => {
+  let b = buf ?? new Uint8Array(0); const pull = async () => { const { done, value } = await rd.read(); if (done) throw 0; b = cat(b, new Uint8Array(value)); };
+  try { while (b.length < 20) await pull(); const n = 20 + u16(b, 2); while (b.length < n) await pull();
+    return [parseStun(b.subarray(0, n)), b.length > n ? b.subarray(n) : null]; } catch { return [null, null]; }
+};
+const resolveIP = async h => /^\d+\.\d+\.\d+\.\d+$/.test(h) ? h : (await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(h)}&type=A`, { headers: { Accept: 'application/dns-json' } }).then(r => r.json()).catch(() => ({}))).Answer?.find(a => a.type === 1)?.data ?? null;
+const md5 = async s => new Uint8Array(await crypto.subtle.digest('MD5', enc(s)));
+
+const E = new Uint8Array(0);
+const MSS = 1400;
+const u32 = (b, o) => (b[o] << 24 | b[o + 1] << 16 | b[o + 2] << 8 | b[o + 3]) >>> 0;
+const rng = n => crypto.getRandomValues(new Uint8Array(n));
+const rng16 = () => { const r = rng(2); return u16(r, 0); };
+const rng32 = () => { const r = rng(4); return u32(r, 0); };
+const ipB = ip => new Uint8Array(ip.split('.').map(Number));
+const papCred = enc(atob('dnBu'));
+const cksum = (d, o, n) => { let s = 0; for (let i = o; i < o + n - 1; i += 2) s += u16(d, i); if (n & 1) s += d[o + n - 1] << 8; while (s >> 16) s = (s & 0xFFFF) + (s >> 16); return (~s) & 0xFFFF; };
+
+const getSstp = url => {
+    if (!url) return null;
+    const m = decodeURIComponent(url).match(/sstp:\/\/([^?&#\s]*)/i);
+    if (!m) return null;
+    const t = m[1], [host, p] = t.split(':');
+    return p ? { host, port: +p } : null;
+};
+
+const createSstp = () => {
+    let buf = E, pppId = 1, sock, rd, wr, host, rb = new ArrayBuffer(65536);
+    const readBytes = async n => {
+      if (buf.length >= n) { const r = buf.subarray(0, n); buf = buf.subarray(n); return r; }
+      const saved = buf.length > 0 ? new Uint8Array(buf) : null, need = n - buf.length;
+      const { value, done } = await rd.readAtLeast(need, new Uint8Array(rb, 0, 65536));
+      if (done) throw 0; rb = value.buffer;
+      if (saved) { const t = cat(saved, value); buf = t.subarray(n); return t.subarray(0, n); }
+      buf = value.subarray(n); return value.subarray(0, n);
+    };
+    const readLine = async () => {
+      for (;;) {
+        const i = buf.indexOf(10);
+        if (i >= 0) { let l = dec.decode(buf.subarray(0, i)); buf = buf.subarray(i + 1); return l.replace(/\r$/, ''); }
+        const saved = buf.length > 0 ? new Uint8Array(buf) : null;
+        const { value, done } = await rd.readAtLeast(1, new Uint8Array(rb, 0, 65536));
+        if (done) throw 0; rb = value.buffer; buf = saved ? cat(saved, value) : value;
+      }
+    };
+    const readPkt = async (ms = 10000) => {
+      let t; const to = new Promise((_, r) => { t = setTimeout(() => r('T'), ms); });
+      try { const h = await Promise.race([readBytes(4), to]); clearTimeout(t); const len = u16(h, 2) & 0xFFF;
+        return { ctrl: (h[1] & 1) !== 0, body: len > 4 ? await readBytes(len - 4) : E }; } catch (e) { clearTimeout(t); throw e; }
+    };
+    const sstpData = f => { const n = 6 + f.length, p = new Uint8Array(n); p.set([0x10, 0, ((n >> 8) & 0xF) | 0x80, n & 0xFF, 0xFF, 0x03]); p.set(f, 6); return p; };
+    const sstpCtrl = (mt, attrs = []) => {
+      const al = attrs.reduce((s, a) => s + 4 + a.data.length, 0), p = new Uint8Array(8 + al), v = new DataView(p.buffer);
+      p[0] = 0x10; p[1] = 0x01; v.setUint16(2, (8 + al) | 0x8000); v.setUint16(4, mt); v.setUint16(6, attrs.length);
+      attrs.reduce((o, a) => (p[o + 1] = a.id, v.setUint16(o + 2, 4 + a.data.length), p.set(a.data, o + 4), o + 4 + a.data.length), 8);
+      return p;
+    };
+    const ppp = (proto, code, id, opts = []) => {
+      const ol = opts.reduce((s, o) => s + 2 + o.data.length, 0), f = new Uint8Array(6 + ol), v = new DataView(f.buffer);
+      v.setUint16(0, proto); f[2] = code; f[3] = id; v.setUint16(4, 4 + ol);
+      opts.reduce((o, x) => (f[o] = x.type, f[o + 1] = 2 + x.data.length, f.set(x.data, o + 2), o + 2 + x.data.length), 6);
+      return f;
+    };
+    const pap = id => { const ul = papCred.length, tl = 6 + ul * 2, f = new Uint8Array(2 + tl), v = new DataView(f.buffer);
+      v.setUint16(0, 0xc023); f[2] = 1; f[3] = id; v.setUint16(4, tl); f[6] = ul; f.set(papCred, 7); f[7 + ul] = ul; f.set(papCred, 8 + ul); return f; };
+    const parsePPP = d => { let o = d.length >= 2 && d[0] === 0xFF && d[1] === 0x03 ? 2 : 0; if (d.length - o < 4) return null;
+      const p = u16(d, o); return p === 0x0021 ? { protocol: p, ip: d.subarray(o + 2) } : d.length - o >= 6 ? { protocol: p, code: d[o + 2], id: d[o + 3], payload: d.subarray(o + 6), raw: d.subarray(o) } : null; };
+    const parseOpts = d => { const r = []; for (let i = 0; i + 2 <= d.length;) { const t = d[i], l = d[i + 1]; if (l < 2 || i + l > d.length) break; r.push({ type: t, data: d.subarray(i + 2, i + l) }); i += l; } return r; };
+    const connect_ = async (h, p) => { sock = connect({ hostname: h, port: p }, { secureTransport: 'on' }); await sock.opened;
+      rd = sock.readable.getReader({ mode: 'byob' }); wr = sock.writable.getWriter(); host = h; };
+    const establish = async () => {
+      const http = enc(`SSTP_DUPLEX_POST /sra_{BA195980-CD49-458b-9E23-C84EE0ADCD75}/ HTTP/1.1\r\nHost: ${host}\r\nContent-Length: 18446744073709551615\r\nSSTPCORRELATIONID: {${crypto.randomUUID()}}\r\n\r\n`);
+      const pa = new Uint8Array(2); new DataView(pa.buffer).setUint16(0, 1); const mru = new Uint8Array(2); new DataView(mru.buffer).setUint16(0, 1500);
+      await wr.write(cat(http, sstpCtrl(0x0001, [{ id: 1, data: pa }]), sstpData(ppp(0xc021, 1, pppId++, [{ type: 1, data: mru }]))));
+      const st = await readLine(); while ((await readLine()) !== ''); if (!st.includes('200')) throw 0;
+      let sa = false, ld = false, auth = false, done = false, myIp = null;
+      for (let r = 0; r < 25 && !done; r++) {
+        const pk = await readPkt(); if (pk.ctrl) { if (!sa && pk.body.length >= 2 && u16(pk.body, 0) === 2) sa = true; continue; }
+        const pp = parsePPP(pk.body); if (!pp) continue;
+        if (pp.protocol === 0xc021) {
+          if (pp.code === 1) { const a = new Uint8Array(pp.raw); a[2] = 2;
+            await wr.write(ld && !auth ? cat(sstpData(a), sstpData(pap(pppId++))) : sstpData(a)); if (ld) auth = true;
+          } else if (pp.code === 2) { ld = true; if (!auth) { await wr.write(sstpData(pap(pppId++))); auth = true; } }
+        } else if (pp.protocol === 0xc023 && pp.code === 2) await wr.write(sstpData(ppp(0x8021, 1, pppId++, [{ type: 3, data: new Uint8Array(4) }])));
+        else if (pp.protocol === 0x8021) {
+          if (pp.code === 1) { const a = new Uint8Array(pp.raw); a[2] = 2; await wr.write(sstpData(a)); }
+          else if (pp.code === 3) { const o = parseOpts(pp.payload).find(x => x.type === 3); if (o) { myIp = [...o.data].join('.'); await wr.write(sstpData(ppp(0x8021, 1, pppId++, [{ type: 3, data: o.data }]))); } }
+          else if (pp.code === 2) { const o = parseOpts(pp.payload).find(x => x.type === 3); if (o) myIp = [...o.data].join('.'); done = true; }
+        }
+      }
+      if (!myIp) throw 0; return myIp;
+    };
+    const close = () => { [rd, wr, sock].forEach(x => { try { x?.cancel?.() ?? x?.close?.(); } catch {} }); };
+    return { connect: connect_, establish, readPkt, parsePPP, get buf() { return buf; }, get wr() { return wr; }, close };
+  };
+
+  const createTcp = (sstp, srcIp, dstIp, dstPort) => {
+    const srcPort = 10000 + (rng16() % 50000), srcB = ipB(srcIp), dstB = ipB(dstIp);
+    let seq = rng32(), ack = 0;
+    const ipTpl = new Uint8Array(20); ipTpl.set([0x45, 0, 0, 0, 0, 0, 0x40, 0, 64, 6]); ipTpl.set(srcB, 12); ipTpl.set(dstB, 16);
+    const pseudo = new Uint8Array(1432); pseudo.set(srcB); pseudo.set(dstB, 4); pseudo[9] = 6;
+    const frame = (flags, data = E) => {
+      const pl = data.length, tl = 20 + pl, il = 20 + tl, st = 8 + il, f = new Uint8Array(st), v = new DataView(f.buffer);
+      f.set([0x10, 0, ((st >> 8) & 0xF) | 0x80, st & 0xFF, 0xFF, 0x03, 0, 0x21]); f.set(ipTpl, 8);
+      v.setUint16(10, il); v.setUint16(12, rng16()); v.setUint16(18, cksum(f, 8, 20));
+      v.setUint16(28, srcPort); v.setUint16(30, dstPort); v.setUint32(32, seq); v.setUint32(36, ack);
+      f[40] = 0x50; f[41] = flags; v.setUint16(42, 65535); if (pl) f.set(data, 48);
+      pseudo[10] = tl >> 8; pseudo[11] = tl & 0xFF; pseudo.set(f.subarray(28, 28 + tl), 12);
+      v.setUint16(44, cksum(pseudo, 0, 12 + tl)); return f;
+    };
+    const match = ip => { if (ip.length < 40 || ip[9] !== 6) return null; const ihl = (ip[0] & 0xF) * 4;
+      if (u16(ip, ihl) !== dstPort || u16(ip, ihl + 2) !== srcPort) return null;
+      return { flags: ip[ihl + 13], seq: u32(ip, ihl + 4), off: ihl + ((ip[ihl + 12] >> 4) & 0xF) * 4 }; };
+    const handshake = async () => {
+      await sstp.wr.write(frame(0x02)); seq++;
+      for (let i = 0; i < 30; i++) { const pk = await sstp.readPkt(); if (pk.ctrl) continue;
+        const pp = sstp.parsePPP(pk.body); if (!pp || pp.protocol !== 0x0021) continue;
+        const m = match(pp.ip); if (!m || (m.flags & 0x12) !== 0x12) continue;
+        ack = (m.seq + 1) >>> 0; sstp.wr.write(frame(0x10)); return true; }
+      throw 0;
+    };
+    return { frame, match, handshake, get seq() { return seq; }, set seq(v) { seq = v; }, get ack() { return ack; }, set ack(v) { ack = v; } };
+  };
+
+  const sstpConn = async ({ host, port }, ipP, targetPort) => {
+    const sstp = createSstp(), close = () => sstp.close();
+    try {
+      await sstp.connect(host, port);
+      const [myIp, targetIp] = await Promise.all([sstp.establish(), ipP]); if (!targetIp) { close(); return null; }
+      const tcp = createTcp(sstp, myIp, targetIp, targetPort); await tcp.handshake();
+      let ctrl = null;
+      const readable = new ReadableStream({ start: c => { ctrl = c; }, cancel: close });
+      (async () => {
+        try { let pend = [], pLen = 0;
+          const flush = () => { if (!pLen) return; ctrl.enqueue(pend.length === 1 ? pend[0] : cat(...pend)); pend = []; pLen = 0; sstp.wr.write(tcp.frame(0x10)).catch(() => {}); };
+          for (;;) { const pk = await sstp.readPkt(60000); if (pk.ctrl) continue;
+            const pp = sstp.parsePPP(pk.body); if (!pp || pp.protocol !== 0x0021) continue;
+            const m = tcp.match(pp.ip); if (!m) continue;
+            if (m.off < pp.ip.length) { const d = pp.ip.subarray(m.off); if (d.length) { tcp.ack = (m.seq + d.length) >>> 0; pend.push(new Uint8Array(d)); pLen += d.length; } }
+            if (m.flags & 0x01) { flush(); tcp.ack = (tcp.ack + 1) >>> 0; sstp.wr.write(tcp.frame(0x11)).catch(() => {}); ctrl.close(); return; }
+            if (sstp.buf.length < 4 || pLen >= 32768) flush();
+          }
+        } catch { try { ctrl.close(); } catch {} }
+      })();
+      const writable = new WritableStream({
+        async write(chunk) { const d = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+          if (d.length <= MSS) { await sstp.wr.write(tcp.frame(0x18, d)); tcp.seq = (tcp.seq + d.length) >>> 0; return; }
+          const frames = []; for (let o = 0; o < d.length; o += MSS) { const seg = d.subarray(o, Math.min(o + MSS, d.length)); frames.push(tcp.frame(0x18, seg)); tcp.seq = (tcp.seq + seg.length) >>> 0; }
+          await sstp.wr.write(cat(...frames));
+        }, close: () => sstp.wr.write(tcp.frame(0x11)).catch(() => {}), abort: close
+      });
+      return { readable, writable, close };
+    } catch { close(); return null; }
+  };
+
+// -- TURN & existing integrations below --
+const turnAuth = async (w, r, transport, { user, pass }, pipeline) => {
+  const tp = new Uint8Array([transport, 0, 0, 0]);
+  await w.write(stunMsg(MT.AQ, tid(), [stunAttr(AT.TRANSPORT, tp)]));
+  let [msg, ex] = await readStun(r); if (!msg) return null;
+  let key = null, aa = [];
+  const sign = m => key ? addIntegrity(m, key) : Promise.resolve(m);
+  if (msg.type === MT.AE && user && parseErr(msg.attrs[AT.ERR]) === 401) {
+    const realm = dec.decode(msg.attrs[AT.REALM] ?? new Uint8Array(0)), nonce = msg.attrs[AT.NONCE] ?? new Uint8Array(0);
+    key = await md5(`${user}:${realm}:${pass}`);
+    aa = [stunAttr(AT.USER, enc(user)), stunAttr(AT.REALM, enc(realm)), stunAttr(AT.NONCE, nonce)];
+    const aq = await addIntegrity(stunMsg(MT.AQ, tid(), [stunAttr(AT.TRANSPORT, tp), ...aa]), key);
+    const extras = pipeline ? await Promise.all(pipeline(aa, sign)) : [];
+    await w.write(extras.length ? cat(aq, ...extras) : aq);
+    [msg, ex] = await readStun(r, ex); if (!msg) return null;
+  } else if (pipeline && msg.type === MT.AO) {
+    const extras = await Promise.all(pipeline(aa, sign));
+    if (extras.length) await w.write(cat(...extras));
+  }
+  return msg.type === MT.AO ? { key, aa, ex, sign } : null;
+};
+
+const getTurn = url => {
+  if (!url) return null;
+  const m = decodeURIComponent(url).match(/turn:\/\/([^?&#\s]*)/i);
+  if (!m) return null;
+  const t = m[1], at = t.lastIndexOf('@'), cred = at >= 0 ? t.slice(0, at) : '', hp = t.slice(at + 1), [host, p] = hp.split(':'), ci = cred.indexOf(':');
+  return p ? { host, port: +p, user: ci >= 0 ? cred.slice(0, ci) : '', pass: ci >= 0 ? cred.slice(ci + 1) : '' } : null;
+};
+
+const encodeAddr = h => {
+  const s = h.replace(/^\[|\]$/g, ''), m = s.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (m) return new Uint8Array([0x01, ...m.slice(1).map(Number)]);
+  if (s.includes(':')) { const b = new Uint8Array(17); b[0] = 0x03; s.split(':').forEach((x, i) => { const v = parseInt(x, 16) || 0; b[1 + i * 2] = v >> 8; b[2 + i * 2] = v & 0xff; }); return b; }
+  const e = enc(h); return cat(new Uint8Array([0x02, e.length]), e);
+};
+
+const xudpAddr = d => {
+  if (!d.length) return ['', 0];
+  if (d[0] <= 1) return d.length >= 5 ? [d.subarray(1, 5).join('.'), 5] : ['', 0];
+  if (d[0] === 2) return d.length >= 2 + d[1] ? [dec.decode(d.subarray(2, 2 + d[1])), 2 + d[1]] : ['', 0];
+  return d[0] === 3 && d.length >= 17 ? [`[${Array.from({ length: 8 }, (_, i) => u16(d, 1 + i * 2).toString(16)).join(':')}]`, 17] : ['', 0];
+};
+
+const fakeIPType = h => { const m = h.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/); return m && +m[1] === 198 && [18, 19].includes(+m[2]) ? 4 : h.replace(/^\[|\]$/g, '').startsWith('fc') && h.includes(':') ? 6 : 0; };
+
+const parseXUDP = d => {
+  if (d.length < 6) return null;
+  const metaLen = u16(d), metaEnd = 2 + metaLen;
+  if (metaLen < 4 || metaEnd > d.length) return null;
+  const f = { network: metaEnd > 6 ? d[6] : 0, port: metaEnd >= 9 ? u16(d, 7) : 0, host: metaEnd > 9 ? xudpAddr(d.subarray(9, metaEnd))[0] : '', payload: null, totalLen: metaEnd };
+  if ((d[5] & 1) && metaEnd + 2 <= d.length) { const pLen = u16(d, metaEnd); if (metaEnd + 2 + pLen <= d.length) { f.payload = d.subarray(metaEnd + 2, metaEnd + 2 + pLen); f.totalLen = metaEnd + 2 + pLen; } }
+  return f;
+};
+
+const xudpResp = (host, port, payload) => { const a = encodeAddr(host), ml = 7 + a.length, buf = new Uint8Array(2 + ml + 2 + payload.length); [buf[0], buf[1], buf[4], buf[5], buf[6], buf[7], buf[8]] = [ml >> 8, ml & 0xff, 2, 1, 2, port >> 8, port & 0xff]; buf.set(a, 9); const pOff = 2 + ml; [buf[pOff], buf[pOff + 1]] = [payload.length >> 8, payload.length & 0xff]; buf.set(payload, pOff + 2); return buf; };
+
+const turnConn = async ({ host, port, user, pass }, targetIp, targetPort) => {
+  let ctrl = null, data = null;
+  const close = () => safeClose(ctrl, data);
+  try {
+    ctrl = await dial(host, port);
+    const cw = ctrl.writable.getWriter(), cr = ctrl.readable.getReader();
+    const peer = stunAttr(AT.PEER, xorPeer(targetIp, targetPort));
+    const auth = await turnAuth(cw, cr, 6, { user, pass }, (aa, sign) => [sign(stunMsg(MT.PQ, tid(), [peer, ...aa])), sign(stunMsg(MT.CQ, tid(), [peer, ...aa]))]);
+    if (!auth) { close(); return null; }
+    const { aa, sign } = auth; let ex = auth.ex;
+    data = connect({ hostname: host, port });
+    let r; [r, ex] = await readStun(cr, ex); if (r?.type !== MT.PO) { close(); return null; }
+    [r, ex] = await readStun(cr, ex); if (r?.type !== MT.CO || !r.attrs[AT.CONNID]) { close(); return null; }
+    await data.opened; const dw = data.writable.getWriter(), dr = data.readable.getReader();
+    await dw.write(await sign(stunMsg(MT.BQ, tid(), [stunAttr(AT.CONNID, r.attrs[AT.CONNID]), ...aa])));
+    let extra; [r, extra] = await readStun(dr); if (r?.type !== MT.BO) { close(); return null; }
+    cr.releaseLock(); cw.releaseLock(); dw.releaseLock();
+    const readable = new ReadableStream({ start: c => extra?.length && c.enqueue(extra), pull: c => dr.read().then(({ done, value }) => done ? c.close() : c.enqueue(new Uint8Array(value))), cancel: () => dr.cancel() });
+    return { readable, writable: data.writable, close };
+  } catch { close(); return null; }
+};
+
+const turnUDP = async ({ host, port, user, pass }, sendWs) => {
+  let sock = null, closed = false;
+  const perms = new Set(), sess = new Map(), reverse = {};
+  const close = () => { closed = true; safeClose(sock); };
+  try {
+    sock = await dial(host, port);
+    const w = sock.writable.getWriter(), r = sock.readable.getReader();
+    const auth = await turnAuth(w, r, 17, { user, pass }); if (!auth) { close(); return null; }
+    const { aa, sign } = auth; let buf = auth.ex;
+    (async () => { while (!closed) { const [m, nx] = await readStun(r, buf); buf = nx; if (!m) break; if (m.type === MT.DI && m.attrs[AT.PEER] && m.attrs[AT.DATA]) { const [ip, pt] = parseXorPeer(m.attrs[AT.PEER]), s = reverse[`${ip}:${pt}`]; sendWs(xudpResp(s?.host ?? ip, s?.port ?? pt, m.attrs[AT.DATA])); } } })();
+    const ensurePerm = ip => { if (perms.has(ip)) return; perms.add(ip); sign(stunMsg(MT.PQ, tid(), [stunAttr(AT.PEER, xorPeer(ip, 0)), ...aa])).then(m => w.write(m)); };
+    const sendUDP = (ip, port, data) => w.write(stunMsg(MT.SI, tid(), [stunAttr(AT.PEER, xorPeer(ip, port)), stunAttr(AT.DATA, data)]));
+    const getIP = (h, p) => {
+      const k = `${h}:${p}`, c = sess.get(k); if (c) return c.ip;
+      const ft = fakeIPType(h); if (ft) for (const s of sess.values()) if (s.port === p && s.isV6 === (ft === 6)) { const ns = { ip: s.ip, host: h, port: p, isV6: s.isV6 }; sess.set(k, ns); reverse[`${s.ip}:${p}`] = ns; return s.ip; }
+      return null;
+    };
+    const resolveAsync = async (h, p, k) => { const ip = await resolveIP(h); if (ip) { const s = { ip, host: h, port: p, isV6: ip.includes(':') }; sess.set(k, s); reverse[`${ip}:${p}`] = s; } };
+    const processXUDP = data => { while (data.length >= 6) { const f = parseXUDP(data); if (!f) break; if (f.network === 2 && f.payload?.length && f.host) { const k = `${f.host}:${f.port}`, ip = getIP(f.host, f.port); ip ? (ensurePerm(ip), sendUDP(ip, f.port, f.payload)) : sess.has(k) || resolveAsync(f.host, f.port, k); } data = data.subarray(f.totalLen); } };
+    return { processXUDP, close };
+  } catch { close(); return null; }
+};
