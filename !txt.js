@@ -8,11 +8,10 @@ let v4 = null;
 
 const r1 = /^(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)$/;
 const r2 = /^\[?([a-fA-F0-9:]+)\]?$/;
+const hx = Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, '0'));
 
 function f1(a, o = 0) {
-    const h = Array.from(a.slice(o, o + 16))
-        .map(b => b.toString(16).padStart(2, '0')).join('');
-    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+    return `${hx[a[o]]}${hx[a[o+1]]}${hx[a[o+2]]}${hx[a[o+3]]}-${hx[a[o+4]]}${hx[a[o+5]]}-${hx[a[o+6]]}${hx[a[o+7]]}-${hx[a[o+8]]}${hx[a[o+9]]}-${hx[a[o+10]]}${hx[a[o+11]]}${hx[a[o+12]]}${hx[a[o+13]]}${hx[a[o+14]]}${hx[a[o+15]]}`;
 }
 
 function f2(s) {
@@ -112,7 +111,10 @@ async function f7(s, t = 'dash.cloudflare.com', u = '00000000-0000-4000-8000-000
 
     const sa = a.sort((x, y) => x[0].localeCompare(y[0]));
     const trg = t.includes('.') ? t.split('.').slice(-2).join('.') : t;
-    let sd = [...(trg + u)].reduce((ac, c) => ac + c.charCodeAt(0), 0);
+    
+    let sd = 0;
+    const str = trg + u;
+    for (let j = 0; j < str.length; j++) sd += str.charCodeAt(j);
 
     v4 = [...sa].sort(() => {
         sd = (sd * 1103515245 + 12345) & 0x7fffffff;
@@ -124,7 +126,7 @@ async function f7(s, t = 'dash.cloudflare.com', u = '00000000-0000-4000-8000-000
 }
 
 export default {
-    async fetch(rq, e, c) {
+    async fetch(rq) {
         try {
             const u = new URL(rq.url);
             const is = rq.headers.get('Upgrade') === 'websocket';
@@ -180,8 +182,8 @@ async function f8(rq, cv) {
                 else throw new Error('UDP is not supported');
             }
 
-            const rh = new Uint8Array([v[0], 0]);
-            const rwd = ck.slice(ri);
+            const rh = new Uint8Array([v, 0]);
+            const rwd = ck.subarray(ri); 
             
             if (dq) return f14(rwd, s, rh);
             await f10(at, h, p, rwd, s, rh, rw, cv);
@@ -228,27 +230,37 @@ async function f10(at, h, pn, rwd, ws, rh, rw, cv) {
 
 function f11(ck, tk) {
     if (ck.byteLength < 24) return { he: true, m: 'invalid' };
-    const v = new Uint8Array(ck.slice(0, 1));
-    if (f1(new Uint8Array(ck.slice(1, 17))) !== tk) return { he: true, m: 'invalid' };
     
-    const ol = new Uint8Array(ck.slice(17, 18))[0];
-    const c = new Uint8Array(ck.slice(18 + ol, 19 + ol))[0];
+    if (f1(ck, 1) !== tk) return { he: true, m: 'invalid' };
+    
+    const ol = ck[17];
+    const c = ck[18 + ol];
     if (c !== 1 && c !== 2) return { he: true, m: 'invalid' };
     
     const pi = 19 + ol;
-    const p = new DataView(ck.slice(pi, pi + 2)).getUint16(0);
+    const p = (ck[pi] << 8) | ck[pi + 1];
     let ai = pi + 3, al = 0, hn = '';
-    const at = new Uint8Array(ck.slice(pi + 2, ai))[0];
+    const at = ck[pi + 2];
 
     switch (at) {
-        case 1: al = 4; hn = new Uint8Array(ck.slice(ai, ai + al)).join('.'); break;
-        case 2: al = new Uint8Array(ck.slice(ai, ai + 1))[0]; ai += 1; hn = new TextDecoder().decode(ck.slice(ai, ai + al)); break;
-        case 3: al = 16; const iv = new DataView(ck.slice(ai, ai + al)); hn = Array.from({ length: 8 }, (_, i) => iv.getUint16(i * 2).toString(16)).join(':'); break;
+        case 1: 
+            al = 4; 
+            hn = `${ck[ai]}.${ck[ai+1]}.${ck[ai+2]}.${ck[ai+3]}`; 
+            break;
+        case 2: 
+            al = ck[ai]; 
+            ai += 1; 
+            hn = new TextDecoder().decode(ck.subarray(ai, ai + al)); 
+            break;
+        case 3: 
+            al = 16; 
+            hn = Array.from({ length: 8 }, (_, i) => ((ck[ai + i * 2] << 8) | ck[ai + i * 2 + 1]).toString(16)).join(':'); 
+            break;
         default: return { he: true, m: 'invalid' };
     }
     
     if (!hn) return { he: true, m: 'invalid' };
-    return { he: false, at, p, h: hn, iu: c === 2, ri: ai + al, v };
+    return { he: false, at, p, h: hn, iu: c === 2, ri: ai + al, v: ck[0] };
 }
 
 function f12(sk, edh) {
@@ -261,7 +273,7 @@ function f12(sk, edh) {
             
             const { d, e } = f2(edh);
             if (e) co.error(e);
-            else if (d) co.enqueue(d);
+            else if (d) co.enqueue(new Uint8Array(d)); 
         },
         cancel() { c = true; f3(sk); }
     });
@@ -272,11 +284,11 @@ async function f13(rs, ws, hd, rf) {
     await rs.readable.pipeTo(new WritableStream({
         async write(ck, co) {
             hd_f = true;
-            if (ws.readyState !== WebSocket.OPEN) co.error('closed');
+            if (ws.readyState !== WebSocket.OPEN) { co.error('closed'); return; }
             if (h) {
                 const r = new Uint8Array(h.length + ck.byteLength);
                 r.set(h, 0); r.set(ck, h.length);
-                ws.send(r.buffer);
+                ws.send(r); 
                 h = null;
             } else {
                 ws.send(ck);
@@ -302,7 +314,7 @@ async function f14(uc, ws, rh) {
                     if (vh) {
                         const r = new Uint8Array(vh.length + ck.byteLength);
                         r.set(vh, 0); r.set(ck, vh.length);
-                        ws.send(r.buffer);
+                        ws.send(r);
                         vh = null;
                     } else {
                         ws.send(ck);
