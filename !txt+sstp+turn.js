@@ -6,11 +6,19 @@ let v2 = '495c7195-85b8-498a-bf20-2ea9ce9175b5';
 let v3 = null;
 let v4 = null;
 
+const dec = new TextDecoder();
+const enc = s => new TextEncoder().encode(s);
+
 const r1 = /^(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)\.(25[0-5]|2[0-4]\d|[01]?\d\d?)$/;
 const r2 = /^\[?([a-fA-F0-9:]+)\]?$/;
+const r3 = /^\[([^\]]+)\](?::(\d+))?$/;
+const r4 = /^(?:\[([^\]]+)\]|([^:]+))(?::(\d+))?$/;
+const r5 = /\.tp(\d+)/;
+const r6 = /sstp:\/\/([^?&#\s]*)/i;
+const r7 = /turn:\/\/([^?&#\s]*)/i;
 
 function f1(a, o = 0) {
-    const h = Array.from(a.slice(o, o + 16))
+    const h = Array.from(a.subarray(o, o + 16))
         .map(b => b.toString(16).padStart(2, '0')).join('');
     return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
@@ -36,7 +44,7 @@ function f4(p) {
     if (!p) return null;
     p = p.trim();
 
-    const m = p.match(/^\[([^\]]+)\](?::(\d+))?$/);
+    const m = p.match(r3);
     if (m) {
         const pt = parseInt(m[2], 10);
         return { t: 'direct', h: m[1], p: (!isNaN(pt) && pt > 0) ? pt : 443 };
@@ -69,7 +77,7 @@ async function f5(d, t) {
 
 function f6(s) {
     let a = s, p = 443;
-    const m = s.match(/^(?:\[([^\]]+)\]|([^:]+))(?::(\d+))?$/);
+    const m = s.match(r4);
     if (m) {
         a = m[1] || m[2];
         p = m[3] ? parseInt(m[3], 10) : 443;
@@ -96,7 +104,7 @@ async function f7(s, t = 'dash.cloudflare.com', u = '00000000-0000-4000-8000-000
         }
     } else {
         let [ad, pt] = f6(td);
-        const tm = td.match(/\.tp(\d+)/);
+        const tm = td.match(r5);
         if (tm) pt = parseInt(tm[1], 10);
 
         if (!r1.test(ad) && !r2.test(ad)) {
@@ -147,7 +155,7 @@ export default {
 
             return new Response('Not Found', { status: 404 });
         } catch (err) {
-            return new Response('Internal Server Error', { status: 500 });
+            return new Response('Error', { status: 500 });
         }
     },
 };
@@ -167,20 +175,21 @@ async function f8(rq, cv) {
 
     rd.pipeTo(new WritableStream({
         async write(ck) {
-            if (turnUdp) return turnUdp.processXUDP(ck);
-            if (dq) return await f14(ck, s, null);
+            const uck = ck instanceof Uint8Array ? ck : new Uint8Array(ck);
+            if (turnUdp) return turnUdp.processXUDP(uck);
+            if (dq) return await f14(uck, s, null);
             if (rw.sk) {
                 const wt = rw.sk.writable.getWriter();
-                await wt.write(ck);
+                await wt.write(uck);
                 wt.releaseLock();
                 return;
             }
 
-            const { he, m, at, p, h, ri, v, iu } = f11(ck, v2);
+            const { he, m, at, p, h, ri, v, iu } = f11(uck, v2);
             if (he) throw new Error(m);
 
             const rh = new Uint8Array([v[0], 0]);
-            const rwd = ck.slice(ri);
+            const rwd = uck.subarray(ri);
             
             if (iu) {
                 if (turnConfig) {
@@ -192,10 +201,10 @@ async function f8(rq, cv) {
                     if (rwd.byteLength) turnUdp.processXUDP(rwd);
                     return;
                 } else if (sstpConfig) {
-                    throw new Error('UDP is not supported over SSTP');
+                    throw new Error('UDP ✘');
                 } else {
                     if (p === 53) dq = true;
-                    else throw new Error('UDP is not supported without TURN');
+                    else throw new Error('UDP ✘');
                 }
             }
 
@@ -268,22 +277,22 @@ async function f10(at, h, pn, rwd, ws, rh, rw, cv) {
 
 function f11(ck, tk) {
     if (ck.byteLength < 24) return { he: true, m: 'invalid' };
-    const v = new Uint8Array(ck.slice(0, 1));
-    if (f1(new Uint8Array(ck.slice(1, 17))) !== tk) return { he: true, m: 'invalid' };
+    const v = ck.subarray(0, 1);
+    if (f1(ck, 1) !== tk) return { he: true, m: 'invalid' };
     
-    const ol = new Uint8Array(ck.slice(17, 18))[0];
-    const c = new Uint8Array(ck.slice(18 + ol, 19 + ol))[0];
+    const ol = ck[17];
+    const c = ck[18 + ol];
     if (c !== 1 && c !== 2) return { he: true, m: 'invalid' };
     
     const pi = 19 + ol;
-    const p = new DataView(ck.slice(pi, pi + 2)).getUint16(0);
+    const p = (ck[pi] << 8) | ck[pi + 1];
     let ai = pi + 3, al = 0, hn = '';
-    const at = new Uint8Array(ck.slice(pi + 2, ai))[0];
+    const at = ck[pi + 2];
 
     switch (at) {
-        case 1: al = 4; hn = new Uint8Array(ck.slice(ai, ai + al)).join('.'); break;
-        case 2: al = new Uint8Array(ck.slice(ai, ai + 1))[0]; ai += 1; hn = new TextDecoder().decode(ck.slice(ai, ai + al)); break;
-        case 3: al = 16; const iv = new DataView(ck.slice(ai, ai + al)); hn = Array.from({ length: 8 }, (_, i) => iv.getUint16(i * 2).toString(16)).join(':'); break;
+        case 1: al = 4; hn = ck.subarray(ai, ai + al).join('.'); break;
+        case 2: al = ck[ai]; ai += 1; hn = dec.decode(ck.subarray(ai, ai + al)); break;
+        case 3: al = 16; hn = Array.from({ length: 8 }, (_, i) => ((ck[ai + i * 2] << 8) | ck[ai + i * 2 + 1]).toString(16)).join(':'); break;
         default: return { he: true, m: 'invalid' };
     }
     
@@ -301,7 +310,7 @@ function f12(sk, edh) {
             
             const { d, e } = f2(edh);
             if (e) co.error(e);
-            else if (d) co.enqueue(d);
+            else if (d) co.enqueue(new Uint8Array(d));
         },
         cancel() { c = true; f3(sk); }
     });
@@ -313,13 +322,14 @@ async function f13(rs, ws, hd, rf) {
         async write(ck, co) {
             hd_f = true;
             if (ws.readyState !== WebSocket.OPEN) co.error('closed');
+            const uck = ck instanceof Uint8Array ? ck : new Uint8Array(ck);
             if (h) {
-                const r = new Uint8Array(h.length + ck.byteLength);
-                r.set(h, 0); r.set(ck, h.length);
-                ws.send(r.buffer);
+                const r = new Uint8Array(h.length + uck.byteLength);
+                r.set(h, 0); r.set(uck, h.length);
+                ws.send(r);
                 h = null;
             } else {
-                ws.send(ck);
+                ws.send(uck);
             }
         },
         abort() {},
@@ -339,13 +349,14 @@ async function f14(uc, ws, rh) {
         await ts.readable.pipeTo(new WritableStream({
             async write(ck) {
                 if (ws.readyState === WebSocket.OPEN) {
+                    const uck = ck instanceof Uint8Array ? ck : new Uint8Array(ck);
                     if (vh) {
-                        const r = new Uint8Array(vh.length + ck.byteLength);
-                        r.set(vh, 0); r.set(ck, vh.length);
-                        ws.send(r.buffer);
+                        const r = new Uint8Array(vh.length + uck.byteLength);
+                        r.set(vh, 0); r.set(uck, vh.length);
+                        ws.send(r);
                         vh = null;
                     } else {
-                        ws.send(ck);
+                        ws.send(uck);
                     }
                 }
             },
@@ -353,7 +364,6 @@ async function f14(uc, ws, rh) {
     } catch (e) {}
 }
 
-const dec = new TextDecoder(), enc = s => new TextEncoder().encode(s);
 const u16 = (b, o = 0) => (b[o] << 8) | b[o + 1], pad4 = n => -n & 3;
 const MAGIC = new Uint8Array([0x21, 0x12, 0xA4, 0x42]);
 const MT = { AQ: 0x003, AO: 0x103, AE: 0x113, PQ: 0x008, PO: 0x108, CQ: 0x00A, CO: 0x10A, BQ: 0x00B, BO: 0x10B, SI: 0x016, DI: 0x017 };
@@ -394,7 +404,7 @@ const cksum = (d, o, n) => { let s = 0; for (let i = o; i < o + n - 1; i += 2) s
 
 const getSstp = url => {
     if (!url) return null;
-    const m = decodeURIComponent(url).match(/sstp:\/\/([^?&#\s]*)/i);
+    const m = decodeURIComponent(url).match(r6);
     if (!m) return null;
     const t = m[1], [host, p] = t.split(':');
     return p ? { host, port: +p } : null;
@@ -529,7 +539,6 @@ const createSstp = () => {
     } catch { close(); return null; }
   };
 
-// -- TURN & existing integrations below --
 const turnAuth = async (w, r, transport, { user, pass }, pipeline) => {
   const tp = new Uint8Array([transport, 0, 0, 0]);
   await w.write(stunMsg(MT.AQ, tid(), [stunAttr(AT.TRANSPORT, tp)]));
@@ -553,7 +562,7 @@ const turnAuth = async (w, r, transport, { user, pass }, pipeline) => {
 
 const getTurn = url => {
   if (!url) return null;
-  const m = decodeURIComponent(url).match(/turn:\/\/([^?&#\s]*)/i);
+  const m = decodeURIComponent(url).match(r7);
   if (!m) return null;
   const t = m[1], at = t.lastIndexOf('@'), cred = at >= 0 ? t.slice(0, at) : '', hp = t.slice(at + 1), [host, p] = hp.split(':'), ci = cred.indexOf(':');
   return p ? { host, port: +p, user: ci >= 0 ? cred.slice(0, ci) : '', pass: ci >= 0 ? cred.slice(ci + 1) : '' } : null;
