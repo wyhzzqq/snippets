@@ -1,4 +1,5 @@
-# snippets
+**除 `snippets.js` 外，文件名即支持的功能，按需食用。建议 `!txt+sstp+turn.js + ak/https.js` ，部署两个即可支持 `!txt` 和 所有AK佬的黑科技**  
+---
 **基于[老王vless](https://github.com/eooce/Cloudflare-proxy/blob/main/snippets.js)修改，TXT记录处理代码来自[CM](https://github.com/cmliu/edgetunnel)，HTTPS代理实现来自[AK](https://t.me/Enkelte_notif/810)，SSTP实现来自[AK](https://t.me/Enkelte_notif/819)**  
 **snippets.js:**  
 1. `proxyip` 改为 `fdip`  
@@ -10,7 +11,7 @@
 vless://495c7195-85b8-498a-bf20-2ea9ce9175b5@ip.sb:443?path=%2F%3Fed%3D2560%26fdip%3Dproxyip.example.com%21txt&security=tls&encryption=none&insecure=0&host=snippets.example.com&fp=firefox&type=ws&allowInsecure=0&sni=snippets.example.com#snippets
 ```
 ------
-* 除 `snippets.js` 外都已移除 `sock/http`，这两个免费的基本都没有好的索性删了  
+* 除 `snippets.js` 外都已移除 `socks/http`，这两个免费的基本都没有好的索性删了  
 * `!txt+sstp+turn.js` turn 路径：`/?ed=2560&fdip=turn://host:port`
 
 _TXT记录反代域名相对A记录的有一个明显优势，不同端口的反代IP可以塞到同一个域名_  
