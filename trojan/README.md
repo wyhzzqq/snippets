@@ -1,0 +1,1 @@
+基于老王trojan，移除socks/http、订阅、前端、测速限制
