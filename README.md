@@ -1,4 +1,5 @@
 **除 `snippets.js` 外，文件名即支持的功能，按需食用。建议 `!txt+sstp+turn.js + ak/https.js` ，部署两个即可支持 `!txt` 和 所有AK佬的黑科技**  
+**只有在你看完介绍后知道 !txt、!ip 是什么、怎么用时才用它们**  
 ---
 **基于[老王vless](https://github.com/eooce/Cloudflare-proxy/blob/main/snippets.js)修改，TXT记录处理代码来自[CM](https://github.com/cmliu/edgetunnel)，HTTPS代理实现来自[AK](https://t.me/Enkelte_notif/810)，SSTP实现来自[AK](https://t.me/Enkelte_notif/819)**  
 **snippets.js:**  
