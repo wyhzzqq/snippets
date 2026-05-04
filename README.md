@@ -1,20 +1,26 @@
-**除 `snippets.js` 外，文件名即支持的功能，按需食用。建议 `!txt+sstp+turn.js + ak/https.js` ，部署两个即可支持 `!txt` 和 所有AK佬的黑科技**  
-**只有在你看完介绍后知道 !txt、!ip 是什么、怎么用时才用它们**  
----
-**基于[老王vless](https://github.com/eooce/Cloudflare-proxy/blob/main/snippets.js)修改，TXT记录处理代码来自[CM](https://github.com/cmliu/edgetunnel)，HTTPS代理实现来自[AK](https://t.me/Enkelte_notif/810)，SSTP实现来自[AK](https://t.me/Enkelte_notif/819)**  
-**snippets.js:**  
-1. `proxyip` 改为 `fdip`  
-2. `fdip` 通过标记 `!txt` 支持 `TXT记录` 反代域名，例：`/?ed=2560&fdip=proxyip.example.com!txt`  
-3. 增加 `HTTPS` 代理支持，不支持ip（手搓tls太大了不好塞进来），例：`/?ed=2560&fdip=https://host:port`  
-4. 增加 `SSTP` 支持，例: `/?ed=2560&fdip=sstp://host:port`  
-5. 移除前端及订阅，需手搓节点  
-```
-vless://495c7195-85b8-498a-bf20-2ea9ce9175b5@ip.sb:443?path=%2F%3Fed%3D2560%26fdip%3Dproxyip.example.com%21txt&security=tls&encryption=none&insecure=0&host=snippets.example.com&fp=firefox&type=ws&allowInsecure=0&sni=snippets.example.com#snippets
-```
-------
-* 除 `snippets.js` 外都已移除 `socks/http`，这两个免费的基本都没有好的索性删了  
-* `!txt+sstp+turn.js` turn 路径：`/?ed=2560&fdip=turn://host:port`
+## 文件说明  
+* **snippets.js**：支持 `!txt/socks5/http/https/sstp`，这个 https 非完全体，不支持 IP  
+* **!txt.js**：支持 `!txt`  
+* **!txt+https**：支持 `!txt/https`，这个 https 是完全体，支持 IP 跳过验证  
+* **!txt+sstp+turn.js**：支持 `!txt/sstp/turn`  
+* 根目录下为 **vless**，**trojan**/**ss** 在对应文件夹  
+**总结**：文件名即支持的功能，除`snippets.js` 外都已移除 `socks/http`  
+**另**：文件夹 **AK** 为 AK 源码备份  
 
-_TXT记录反代域名相对A记录的有一个明显优势，不同端口的反代IP可以塞到同一个域名_  
-**注：1101请删除全部片段后再部署**  
-**文件夹 `AK` 为备份AK佬源码**  
+---
+## 功能说明  
+1. **!txt**：通过标记 `!txt` 支持采用 TXT 记录的反代域名，比如CM群里的威廉的反代域名 [*.william.us.ci!txt](https://t.me/CMLiussss_channel/84)  
+2. **https**：https 代理完全体，无正常证书的通过标记 `!ip` 支持跳过证书，见 [AK说明](https://t.me/Enkelte_notif/817)  
+3. **sstp**：见 [AK说明](https://t.me/Enkelte_notif/819)  
+4. **turn**：见 [AK说明](https://t.me/Enkelte_notif/805)  
+**总结**：这些功能解决的是CF节点的落地问题，可以实现**无限家宽全球落地**，通过统一路径形式支持各落地功能，以 `!txt` 为例：`/?ed=2560&fdip=*.william.us.ci!txt`  
+**本项目适合对CF节点有一定理解基础的同学，需手搓节点，以需跳过证书验证的 https 代理为例：**  
+```
+vless://495c7195-85b8-498a-bf20-2ea9ce9175b5@www.shopify.com:443?path=%2F%3Fed%3D2560%26fdip%3Dhttps%3A%2F%2F1.2.3.4%3A443%21ip&security=tls&encryption=none&insecure=0&host=https.snippets.cf&fp=random&type=ws&allowInsecure=0&sni=https.snippets.cf#https
+```
+
+---
+**特别提醒：1101请全删旧片段再部署**  
+---
+## 鸣谢  
+**代码来自 [老王](https://github.com/eooce/Cloudflare-proxy/blob/main/snippets.js)、[CM](https://github.com/cmliu/edgetunnel)、[AK](https://t.me/Enkelte_notif) 等大佬**
