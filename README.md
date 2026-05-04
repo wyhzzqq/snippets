@@ -3,9 +3,8 @@
 * **!txt.js**：支持 `!txt`  
 * **!txt+https**：支持 `!txt/https`，这个 https 是完全体，支持 IP 跳过验证  
 * **!txt+sstp+turn.js**：支持 `!txt/sstp/turn`  
-* 根目录下为 **vless**，**trojan**/**ss** 在对应文件夹  
+* 根目录下为 **vless**，**trojan**/**ss** 在对应文件夹，文件夹 **AK** 为 AK 源码备份  
 **总结**：文件名即支持的功能，除`snippets.js` 外都已移除 `socks/http`  
-**另**：文件夹 **AK** 为 AK 源码备份  
 
 ---
 ## 功能说明  
