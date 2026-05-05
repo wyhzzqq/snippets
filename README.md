@@ -1,7 +1,7 @@
 ## 文件说明  
 * **snippets.js**：支持 `!txt/socks5/http/https/sstp`，这个 https 非完全体，不支持 IP  
 * **!txt.js**：支持 `!txt`  
-* **!txt+https**：支持 `!txt/https`，这个 https 是完全体，支持 IP 跳过验证  
+* **!txt+https.js**：支持 `!txt/https`，这个 https 是完全体，支持 IP 跳过验证  
 * **!txt+sstp+turn.js**：支持 `!txt/sstp/turn`  
 * 根目录下为 **vless**，**trojan**/**ss** 在对应文件夹，文件夹 **AK** 为 AK 源码备份  
 **总结**：文件名即支持的功能，除`snippets.js` 外都已移除 `socks/http`  
@@ -19,7 +19,8 @@ vless://495c7195-85b8-498a-bf20-2ea9ce9175b5@www.shopify.com:443?path=%2F%3Fed%3
 ```
 
 ---
-**特别提醒：1101请全删旧片段再部署**  
+## 特别提醒  
+**1101请全删旧片段再部署。已有正常运行中的片段需谨慎，部署新片段会触发全部片段代码检测**  
 ---
 ## 鸣谢  
 **代码来自 [老王](https://github.com/eooce/Cloudflare-proxy/blob/main/snippets.js)、[CM](https://github.com/cmliu/edgetunnel)、[AK](https://t.me/Enkelte_notif) 等大佬**
