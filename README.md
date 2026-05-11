@@ -1,3 +1,6 @@
+**更新：版本回退，snippets 与 byob 似乎不太搭，优化变劣化**  
+
+---
 ## 文件说明  
 * **snippets.js**：支持 `!txt/socks5/http/https/sstp/turn`，这个 https 非完全体，不支持 IP  
 * **!txt.js**：支持 `!txt`  
