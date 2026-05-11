@@ -150,7 +150,7 @@ async function f16(s, d = 'dash.cloudflare.com', u = '00000000-0000-4000-8000-00
 }
 
 const f17 = (u, p) => {
-  let b = v7, i = 1, sk, rd, wr, h, rb = new ArrayBuffer(65536);
+  let b = v7, i = 1, sk, rd, wr, h, rb = new ArrayBuffer(16384);
   const fn1 = async n => {
     if (b.length >= n) { const r = b.subarray(0, n); b = b.subarray(n); return r; }
     const sv = b.length > 0 ? new Uint8Array(b) : null, nd = n - b.length;
