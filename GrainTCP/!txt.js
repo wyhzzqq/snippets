@@ -14,25 +14,45 @@ const raceSprout = (f, h, p) => { if (!f?.connect) return Promise.reject(new Err
 const parseAddr = (b, o, t) => { const l = t === 3 ? b[o++] : t === 1 ? 4 : t === 4 ? 16 : null; if (l === null) return null; const n = o + l; return n > b.length ? null : { targetAddrBytes: b.subarray(o, n), dataOffset: n }; };
 const vmore = c => { if (c.length < 24 || !matchID(c)) return null; let o = 19 + c[17]; const p = (c[o] << 8) | c[o + 1]; let t = c[o + 2]; if (t !== 1) t += 1; const a = parseAddr(c, o + 3, t); return a ? { addrType: t, ...a, port: p } : null; };
 
-let pxCacheKey = null, pxCache = null;
+let pxCacheKey = null, pxCache = null, pxCacheExp = 0;
+
 const doh = async (d, t) => {
   for (const h of ['https://1.1.1.1/dns-query', 'https://dns.google/dns-query']) {
     try { const r = await fetch(`${h}?name=${d}&type=${t}`, { headers: { Accept: 'application/dns-json' } }); if (r.ok) return (await r.json()).Answer || []; } catch {}
   } return [];
 };
+
 const parseHP = s => { const m = s.match(/^(?:\[([^\]]+)\]|([^:]+))(?::(\d+))?$/); return m ? [m[1] || m[2], m[3] ? +m[3] : 443] : [s, 443]; };
+
 const resolvePx = async (px, th, uuid) => {
-  px = px.trim(); if (pxCacheKey === px && pxCache) return pxCache;
-  let ns = [];
+  px = px.trim(); 
+  if (pxCacheKey === px && pxCache && Date.now() < pxCacheExp) return pxCache;
+  
+  let ns = [], ttl = 300;
   if (px.toLowerCase().endsWith('!txt')) {
-    const dt = (await doh(px.slice(0, -4).trim(), 'TXT')).filter(r => r.type === 16).map(r => r.data);
-    if (dt.length) ns = dt[0].replace(/^"|"$/g, '').replace(/\\010|\n/g, ',').split(',').map(x => x.trim()).filter(Boolean).map(parseHP);
+    const ans = await doh(px.slice(0, -4).trim(), 'TXT');
+    const dt = ans.filter(r => r.type === 16);
+    if (dt.length) {
+      ttl = dt[0].TTL || 300;
+      ns = dt[0].data.replace(/^"|"$/g, '').replace(/\\010|\n/g, ',').split(',').map(x => x.trim()).filter(Boolean).map(parseHP);
+    }
   } else ns = [parseHP(px)];
+  
   if (!ns.length) ns = [parseHP(px.replace(/!txt$/i, ''))];
-  ns.sort((a, b) => a[0].localeCompare(b[0]));
+  
+  ns.sort((a, b) => a[0] < b[0] ? -1 : 1);
+  
   let sd = 0; const ss = (th.includes('.') ? th.split('.').slice(-2).join('.') : th) + uuid;
   for (let i = 0; i < ss.length; i++) sd += ss.charCodeAt(i);
-  pxCacheKey = px; return pxCache = [...ns].sort(() => { sd = (sd * 1103515245 + 12345) & 0x7fffffff; return (sd / 0x7fffffff) - 0.5; }).slice(0, 8);
+  for (let i = ns.length - 1; i > 0; i--) {
+    sd = (sd * 1103515245 + 12345) & 0x7fffffff;
+    const j = sd % (i + 1);
+    [ns[i], ns[j]] = [ns[j], ns[i]];
+  }
+  
+  pxCacheKey = px; 
+  pxCacheExp = Date.now() + ttl * 1000;
+  return pxCache = ns.slice(0, 8);
 };
 
 const mkQ = (cap, qCap = cap, itemsMax = Math.max(1, qCap >> 8)) => {
