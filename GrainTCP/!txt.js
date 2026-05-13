@@ -1,33 +1,29 @@
+// 可自行测哪组参数更优，或者你有更优的参数组合，欢迎反馈
 const CFG = { id: '495c7195-85b8-498a-bf20-2ea9ce9175b5', chunk: 64 * 1024, dnPack: 32 * 1024, dnTail: 512, dnMs: 0, upPack: 16 * 1024, upQMax: 256 * 1024, maxED: 8 * 1024, concur: 1 };
+// gpt建议：const CFG = { id: '495c7195-85b8-498a-bf20-2ea9ce9175b5', chunk: 32 * 1024, dnPack: 16 * 1024, dnTail: 512, dnMs: 4, upPack: 32 * 1024, upQMax: 128 * 1024, maxED: 2 * 1024, concur: 1 };
+// grok建议：const CFG = { id: '495c7195-85b8-498a-bf20-2ea9ce9175b5', chunk: 16 * 1024, dnPack: 8 * 1024, dnTail: 256, dnMs: 0, upPack: 8 * 1024, upQMax: 64 * 1024, maxED: 4 * 1024, concur: 1};
 
 export default { fetch: req => req.headers.get('Upgrade')?.toLowerCase() === 'websocket' ? ws(req) : new Response('Hello world!') }; 
-
 const hex = c => (c > 64 ? c + 9 : c) & 0xF;
 const idB = new Uint8Array(16), dec = new TextDecoder(); 
 for (let i = 0, p = 0, c, h; i < 16; i++) { c = CFG.id.charCodeAt(p++); c === 45 && (c = CFG.id.charCodeAt(p++)); h = hex(c); c = CFG.id.charCodeAt(p++); c === 45 && (c = CFG.id.charCodeAt(p++)); idB[i] = h << 4 | hex(c); }
 const [I0, I1, I2, I3, I4, I5, I6, I7, I8, I9, I10, I11, I12, I13, I14, I15] = idB;
 const matchID = c => c[1] === I0 && c[2] === I1 && c[3] === I2 && c[4] === I3 && c[5] === I4 && c[6] === I5 && c[7] === I6 && c[8] === I7 && c[9] === I8 && c[10] === I9 && c[11] === I10 && c[12] === I11 && c[13] === I12 && c[14] === I13 && c[15] === I14 && c[16] === I15;
 const addr = (t, b) => t === 1 ? `${b[0]}.${b[1]}.${b[2]}.${b[3]}` : t === 3 ? dec.decode(b) : `[${Array.from({ length: 8 }, (_, i) => ((b[i * 2] << 8) | b[i * 2 + 1]).toString(16)).join(':')}]`;
-
 const sprout = (f, h, p, s = f.connect({ hostname: h, port: p })) => s.opened.then(() => s);
 const raceSprout = (f, h, p) => { if (!f?.connect) return Promise.reject(new Error('connect unavailable')); if (CFG.concur <= 1) return sprout(f, h, p); const ts = Array(CFG.concur).fill().map(() => sprout(f, h, p)); return Promise.any(ts).then(w => { ts.forEach(t => t.then(s => s !== w && s.close(), () => {})); return w; }); };
 const parseAddr = (b, o, t) => { const l = t === 3 ? b[o++] : t === 1 ? 4 : t === 4 ? 16 : null; if (l === null) return null; const n = o + l; return n > b.length ? null : { targetAddrBytes: b.subarray(o, n), dataOffset: n }; };
 const vmore = c => { if (c.length < 24 || !matchID(c)) return null; let o = 19 + c[17]; const p = (c[o] << 8) | c[o + 1]; let t = c[o + 2]; if (t !== 1) t += 1; const a = parseAddr(c, o + 3, t); return a ? { addrType: t, ...a, port: p } : null; };
-
 let pxCacheKey = null, pxCache = null, pxCacheExp = 0;
-
 const doh = async (d, t) => {
   for (const h of ['https://1.1.1.1/dns-query', 'https://dns.google/dns-query']) {
     try { const r = await fetch(`${h}?name=${d}&type=${t}`, { headers: { Accept: 'application/dns-json' } }); if (r.ok) return (await r.json()).Answer || []; } catch {}
   } return [];
 };
-
 const parseHP = s => { const m = s.match(/^(?:\[([^\]]+)\]|([^:]+))(?::(\d+))?$/); return m ? [m[1] || m[2], m[3] ? +m[3] : 443] : [s, 443]; };
-
 const resolvePx = async (px, th, uuid) => {
   px = px.trim(); 
   if (pxCacheKey === px && pxCache && Date.now() < pxCacheExp) return pxCache;
-  
   let ns = [], ttl = 300;
   if (px.toLowerCase().endsWith('!txt')) {
     const ans = await doh(px.slice(0, -4).trim(), 'TXT');
@@ -37,11 +33,7 @@ const resolvePx = async (px, th, uuid) => {
       ns = dt[0].data.replace(/^"|"$/g, '').replace(/\\010|\n/g, ',').split(',').map(x => x.trim()).filter(Boolean).map(parseHP);
     }
   } else ns = [parseHP(px)];
-  
   if (!ns.length) ns = [parseHP(px.replace(/!txt$/i, ''))];
-  
-  ns.sort((a, b) => a[0] < b[0] ? -1 : 1);
-  
   let sd = 0; const ss = (th.includes('.') ? th.split('.').slice(-2).join('.') : th) + uuid;
   for (let i = 0; i < ss.length; i++) sd += ss.charCodeAt(i);
   for (let i = ns.length - 1; i > 0; i--) {
@@ -49,12 +41,10 @@ const resolvePx = async (px, th, uuid) => {
     const j = sd % (i + 1);
     [ns[i], ns[j]] = [ns[j], ns[i]];
   }
-  
   pxCacheKey = px; 
   pxCacheExp = Date.now() + ttl * 1000;
   return pxCache = ns.slice(0, 8);
 };
-
 const mkQ = (cap, qCap = cap, itemsMax = Math.max(1, qCap >> 8)) => {
   let q = [], h = 0, qB = 0, buf = null;
   const trim = () => { h > 32 && h * 2 >= q.length && (q = q.slice(h), h = 0); };
@@ -74,10 +64,8 @@ const mkDn = w => {
   return { send(u) { let o = 0, n = u?.byteLength || 0; if (!n) return; while (o < n) { if (!p && n - o >= cap) { const m = Math.min(cap, n - o); w.send(o || m !== n ? u.subarray(o, o + m) : u); o += m; continue; } const m = Math.min(cap - p, n - o); pb.set(u.subarray(o, o + m), p); p += m; o += m; gen++; if (p === cap || cap - p < tail) reap(); else ripen(); } }, reap }; };
 const mill = async (rd, w) => { const r = rd.getReader({ mode: 'byob' }), tx = mkDn(w); let buf = new ArrayBuffer(CFG.chunk);
   try { for (;;) { const { done, value: v } = await r.read(new Uint8Array(buf, 0, CFG.chunk)); if (done) break; if (!v?.byteLength) continue; if (v.byteLength >= (CFG.chunk >> 1)) tx.reap(), w.send(v), buf = new ArrayBuffer(CFG.chunk); else tx.send(v.slice()), buf = v.buffer; } tx.reap(); } catch {} finally { try { tx.reap(); } catch {} try { r.releaseLock(); } catch {} } };
-
 const ws = async req => {
   const proxyTarget = new URL(req.url).searchParams.get('fdip') ?? 'tw.william.us.ci!txt';
-  
   const [client, server] = Object.values(new WebSocketPair()); server.accept({ allowHalfOpen: true }); server.binaryType = 'arraybuffer'; const fetcher = req.fetcher;
   const edStr = req.headers.get('sec-websocket-protocol'); const ed = edStr && edStr.length <= CFG.maxED * 4 / 3 + 4 ? /** @type {*} */ (Uint8Array).fromBase64(edStr, { alphabet: 'base64url' }) : null; let curW = null, sock = null, closed = false, busy = false;
   const uq = mkQ(CFG.upPack, CFG.upQMax, CFG.upQMax >> 8);
@@ -86,14 +74,12 @@ const ws = async req => {
   const sow = d => { const u = toU8(d), n = u.byteLength; if (!n) return 1; if (uq.sow(u)) return 1; wither(); return 0; };
   const thresh = async () => { if (busy || closed) return; busy = true; try { for (;;) {
     if (closed) break; if (!sock) { const [d] = uq.bundle(); if (!d) break; const r = vmore(d); if (!r) throw wither(); server.send(new Uint8Array([d[0], 0])); const host = addr(r.addrType, r.targetAddrBytes), port = r.port, payload = d.subarray(r.dataOffset); 
-    
     sock = await raceSprout(fetcher, host, port).catch(async () => {
       const ns = await resolvePx(proxyTarget, host, CFG.id);
       if (!fetcher?.connect || !ns.length) throw new Error('connect unavailable');
       const ts = ns.slice(0, Math.max(1, CFG.concur)).map(n => sprout(fetcher, n[0], n[1]));
       return Promise.any(ts).then(w => { ts.forEach(t => t.then(s => s !== w && s.close(), () => {})); return w; });
     });
-    
     if (!sock) throw wither(); curW = sock.writable.getWriter(); const [first] = uq.bundle(payload); first?.byteLength && await curW.write(first); mill(sock.readable, server).finally(() => wither()); continue; }
     const [d] = uq.bundle(); if (!d) break; await curW.write(d);
   } } catch { wither(); } finally { busy = false; !uq.empty && !closed && queueMicrotask(thresh); } };
