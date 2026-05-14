@@ -154,7 +154,7 @@ const f17 = (u, p) => {
   const fn1 = async n => {
     if (b.length >= n) { const r = b.subarray(0, n); b = b.subarray(n); return r; }
     const sv = b.length > 0 ? new Uint8Array(b) : null, nd = n - b.length;
-    const { value: v, done: d } = await rd.readAtLeast(nd, new Uint8Array(rb, 0, 65536));
+    const { value: v, done: d } = await rd.readAtLeast(nd, new Uint8Array(rb));
     if (d) throw 0; rb = v.buffer;
     if (sv) { const t = f2(sv, v); b = t.subarray(n); return t.subarray(0, n); }
     b = v.subarray(n); return v.subarray(0, n);
@@ -164,7 +164,7 @@ const f17 = (u, p) => {
       const x = b.indexOf(10);
       if (x >= 0) { let l = v8.decode(b.subarray(0, x)); b = b.subarray(x + 1); return l.replace(/\r$/, ''); }
       const sv = b.length > 0 ? new Uint8Array(b) : null;
-      const { value: v, done: d } = await rd.readAtLeast(1, new Uint8Array(rb, 0, 65536));
+      const { value: v, done: d } = await rd.readAtLeast(1, new Uint8Array(rb));
       if (d) throw 0; rb = v.buffer; b = sv ? f2(sv, v) : v;
     }
   };
@@ -186,8 +186,14 @@ const f17 = (u, p) => {
     op.reduce((o, x) => (f[o] = x.type, f[o + 1] = 2 + x.data.length, f.set(x.data, o + 2), o + 2 + x.data.length), 6);
     return f;
   };
-  const fn7 = id => { const ul = u.length, pl = p.length, tl = 6 + ul + pl, f = new Uint8Array(2 + tl), vw = new DataView(f.buffer);
-    vw.setUint16(0, 0xc023); f[2] = 1; f[3] = id; vw.setUint16(4, tl); f[6] = ul; f.set(f1(u), 7); f[7 + ul] = pl; f.set(f1(p), 8 + ul); return f; };
+  const fn7 = id => { 
+    const ub = f1(u), pb = f1(p);
+    const ul = ub.length, pl = pb.length, tl = 6 + ul + pl, f = new Uint8Array(2 + tl), vw = new DataView(f.buffer);
+    vw.setUint16(0, 0xc023); f[2] = 1; f[3] = id; vw.setUint16(4, tl); 
+    f[6] = ul; f.set(ub, 7); 
+    f[7 + ul] = pl; f.set(pb, 8 + ul); 
+    return f; 
+  };
   const fn8 = d => { let o = d.length >= 2 && d[0] === 0xFF && d[1] === 0x03 ? 2 : 0; if (d.length - o < 4) return null;
     const pt = f3(d, o); return pt === 0x0021 ? { protocol: pt, ip: d.subarray(o + 2) } : d.length - o >= 6 ? { protocol: pt, code: d[o + 2], id: d[o + 3], payload: d.subarray(o + 6), raw: d.subarray(o) } : null; };
   const fn9 = d => { const r = []; for (let j = 0; j + 2 <= d.length;) { const t = d[j], l = d[j + 1]; if (l < 2 || j + l > d.length) break; r.push({ type: t, data: d.subarray(j + 2, j + l) }); j += l; } return r; };
