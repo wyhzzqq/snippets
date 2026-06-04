@@ -1,5 +1,5 @@
 ## 前排提示
-**无前端，无订阅，需手搓节点，订阅功能可自行使用其他大佬维护的订阅器实现，或使用其他大佬代码。**  
+**无前端，无订阅，需手搓节点，订阅功能可自行使用其他大佬维护的订阅器实现，或使用其他大佬 snippets 代码。**  
 **仅适合对CF节点有一定基础的同学，至少得会修改节点信息。**  
 
 ---
@@ -15,8 +15,10 @@
 2. **https**：完全体支持 `https://host:port` 和 `https://ip:port!ip`，非完全体仅支持 `https://host:port`，见 [AK说明](https://t.me/Enkelte_notif/817)  
 3. **sstp**：小日子大学的个人志愿者公益家宽，见 [AK说明](https://t.me/Enkelte_notif/819)  
 4. **turn**：见 [AK说明](https://t.me/Enkelte_notif/805)  
+0. **global**：协议代理（socks5等）默认全局模式，?global=0 时关闭全局模式，采用回落模式。**特别地，snippets 环境下 turn 代理不支持回落模式，已强制全局模式**  
+
 **总结**：这些功能解决的是CF节点的落地问题，可以实现**无限家宽全球落地**  
-**注**：TXT 内容格式以 `,` 分隔或换行或两者混用。作用逻辑：获取域名 TXT 记录内容，取其中某个反代 ip:port 或协议代理 sstp://host:port（以sstp为例）使用  
+**另注**：TXT 内容格式以 `,` 分隔或换行或两者混用。作用逻辑：获取域名 TXT 记录内容，取其中某个反代 ip:port 或协议代理如 sstp://host:port 使用  
 
 **路径示例：**
 ```
@@ -34,6 +36,8 @@
 /?ed=2560&fdip=sstp://host:port
 6. turn：
 /?ed=2560&fdip=turn://host:port
+7. global:
+/?ed=2560&fdip={落地}&global=0
 ```
 **节点示例：**
 ```
@@ -45,7 +49,7 @@ ss://YWVzLTEyOC1nY206cGFzc3dvcmQ=@www.shopify.com:80/?plugin=v2ray-plugin%3Bmode
 ---
 ## 特别提醒
 **若1101请全删旧片段再部署，已有正常运行中的片段需谨慎，部署新片段会触发全部片段代码检测。**  
-**有问题请开 issue 或联系 [tg bot](https://t.me/meindmBot)**  
+**有问题请开 issue 或联系 [tg bot](https://t.me/meindmBot) 直奔主题**  
 
 ---
 ## 鸣谢
