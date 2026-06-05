@@ -15,10 +15,10 @@
 2. **https**：完全体支持 `https://host:port` 和 `https://ip:port!ip`，非完全体仅支持 `https://host:port`，见 [AK说明](https://t.me/Enkelte_notif/817)  
 3. **sstp**：小日子大学的个人志愿者公益家宽，见 [AK说明](https://t.me/Enkelte_notif/819)  
 4. **turn**：见 [AK说明](https://t.me/Enkelte_notif/805)  
-0. **global**：协议代理（socks5等）默认全局模式，?global=0 时关闭全局模式，采用回落模式。**特别地，snippets 环境下 turn 代理不支持回落模式，已强制全局模式**  
+0. **global**：协议代理（socks5等）默认全局模式，?global=0 时关闭全局模式，采用回落模式。  
 
-**总结**：这些功能解决的是CF节点的落地问题，可以实现**无限家宽全球落地**  
-**另注**：TXT 内容格式以 `,` 分隔或换行或两者混用。作用逻辑：获取域名 TXT 记录内容，取其中某个反代 ip:port 或协议代理如 sstp://host:port 使用  
+**总结**：这些功能解决的是CF节点的落地问题，可以实现**无限家宽全球落地**。  
+**另注**：TXT 内容格式以 `,` 分隔或换行或两者混用。作用逻辑：获取域名 TXT 记录内容，取其中某个反代 ip:port 或协议代理如 sstp://host:port 使用。  
 
 **路径示例：**
 ```
