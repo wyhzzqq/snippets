@@ -8,14 +8,17 @@
 * `!txt+https.js`：支持 `!txt` + `https` 功能，此 https 为完全体。  
 * `snippets.js`：支持 `!txt` + `socks5` + `http` + `https` + `sstp` + `turn` 功能，此 https 非完全体。  
 * `*_ss.js`：为 shadowsocks 版，不带 _ss 尾标为 vless 版。  
+* `worker.js`：支持 vless/trojan/shadowsocks 三协议，及所有落地功能。worker 更推荐CM佬的 [edgetunnel](https://github.com/cmliu/edgetunnel)，方便易用。  
 
 ---
 ## 功能说明
 1. **!txt**：通过标记 `!txt` 支持采用 TXT 记录的反代域名、https等协议代理域名，比如CM群里的威廉的反代域名 [*.william.us.ci!txt](https://t.me/CMLiussss_channel/84)、https://https.example.com!txt  
-2. **https**：完全体支持 `https://host:port` 和 `https://ip:port!ip`，非完全体仅支持 `https://host:port`，见 [AK说明](https://t.me/Enkelte_notif/817)  
-3. **sstp**：小日子大学的个人志愿者公益家宽，见 [AK说明](https://t.me/Enkelte_notif/819)  
-4. **turn**：见 [AK说明](https://t.me/Enkelte_notif/805)  
-0. **global**：协议代理（socks5等）默认全局模式，?global=0 时关闭全局模式，采用回落模式。  
+2. **socks**：略  
+3. **http**：略  
+4. **https**：完全体支持 `https://host:port` 和 `https://ip:port!ip`，非完全体仅支持 `https://host:port`，见 [AK说明](https://t.me/Enkelte_notif/817)  
+5. **sstp**：小日子大学的个人志愿者公益家宽，见 [AK说明](https://t.me/Enkelte_notif/819)  
+6. **turn**：见 [AK说明](https://t.me/Enkelte_notif/805)  
+7. **global**：协议代理（socks5等）默认全局模式，?global=0 时关闭全局模式，采用回落模式。  
 
 **总结**：这些功能解决的是CF节点的落地问题，可以实现**无限家宽全球落地**。  
 **另注**：TXT 内容格式以 `,` 分隔或换行或两者混用。作用逻辑：获取域名 TXT 记录内容，取其中某个反代 ip:port 或协议代理如 sstp://host:port 使用。  
